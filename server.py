@@ -29,6 +29,14 @@ def request() -> flask.Response:
     except Exception as e:
         return '<a href = \'/\'>Return home</a><br>Fail -- %s' % e
 
+@app.route('/ipc') # IPC routes
+def ipc() -> flask.Response:
+    return flask.render_template('ipc.html', CLIENT_ID = CLIENT_ID, routes = routes)
+
+@app.route('/ipc/request')
+def ipcRequest() -> flask.Response:
+    return 'Not implemented yet'
+
 if __name__ == '__main__':
     webbrowser.open('http://localhost:1234')
     app.run(host = '0.0.0.0', port = 1234)

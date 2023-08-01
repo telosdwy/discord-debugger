@@ -2,72 +2,24 @@
 <!-- This is not meant to be good HTML. Just deal with it, please. -->
 <html>
   <head>
-    <script>
-    // https://stackoverflow.com/a/179514
-    function deleteAllCookies() {
-        const cookies = document.cookie.split(';');
-
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i];
-            const eqPos = cookie.indexOf('=');
-            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        }
-        location.reload();
-    }
-
-    // https://www.w3schools.com/js/js_cookies.asp
-    function getCookie(key) {
-      key += '=';
-      let cookies = decodeURIComponent(document.cookie).split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        let cookie = cookies[i];
-        while (cookie.charAt(0) == ' ') {
-          cookie = cookie.substring(1);
-        }
-        if (cookie.indexOf(key) == 0) {
-          return cookie.substring(key.length, cookie.length);
-        }
-      }
-      return '';
-    }
-
-    function load() {
-      let access_token = getCookie('access_token');
-      let scopes = getCookie('scope');
-      document.getElementById('access_token').innerHTML += '<code>' + access_token + '</code>';
-      document.getElementById('scopes').innerHTML = scopes;
-    }
-
-    function request(route) {
-      let href = `/request?route=${route}`;
-      let inputs = document.getElementsByTagName('input');
-      for (let input of inputs) {
-        if (input.id.startsWith(route + '/')) {
-          href += `&${input.id.replace(route + '/', '')}=${input.value}`;
-        }
-      }
-      if (!window.confirm('Transferring you over to ' + href)) {
-        return;
-      }
-      location.href = href;
-    }
-
-    function change() {
-      for (let element of document.getElementsByTagName('div')) {
-        element.style.display = 'none';
-      }
-      document.getElementById(routes_select.value).style.display = 'block';
-    }
-    </script>
+    <script src = '{{ url_for('static', filename = 'script.js') }}'></script>
   </head>
   <body onload='load();'>
+    <a href = '/ipc'>IPC debugger</a>
+
     <h1>Discord Debugger</h1>
     <h3>A thrown-together Discord Scope Debugger</h3>
 
     <p>Your application ID is: <code>{{ CLIENT_ID }}</code></p>
     <p id = 'access_token'>Your access_token is: </p>
     <p>No token? Try: <a target = '_blank' href = 'https://discord.com/developers/applications/{{ CLIENT_ID }}/oauth2/url-generator'>OAuth2 URL generator</a> -- just put your redirect URL as http://localhost:1234</p>
+    <a href =
+    'https://discord.com/api/oauth2/authorize?client_id={{ CLIENT_ID }}&redirect_uri=http%3A%2F%2Flocalhost%3A1234&response_type=code&scope=identify%20gdm.join%20guilds%20rpc.video.write%20messages.read%20email%20guilds.join%20rpc%20rpc.voice.read%20rpc.activities.write%20rpc.voice.write%20rpc.screenshare.read%20connections%20guilds.members.read%20rpc.notifications.read%20rpc.video.read%20rpc.screenshare.write%20role_connections.write'
+    >Here's all of the public, non-bot scopes for quick reference.</a>
+    <br>
+    <a href =
+    'https://discord.com/api/oauth2/authorize?client_id={{ CLIENT_ID }}&redirect_uri=http%3A%2F%2Flocalhost%3A1234&response_type=code&scope=identify%20guilds%20gdm.join%20messages.read%20email%20guilds.join%20connections%20guilds.members.read%20role_connections.write'
+    >And ones that aren't exclusive to the application owner.</a>
     <p>Scopes: <code id = 'scopes'></code></p>
     <a href = 'javascript:deleteAllCookies();'>Delete cookies</a>
     <br>
@@ -87,6 +39,10 @@
       <p>Requires:
         <br>
         <code>{{ '<br>'.join(route.requires)|safe }}</code>
+      </p>
+      <p>Note:
+        <br>
+        <code>{{ route.note.replace('\n', '<br>')|safe }}</code>
       </p>
       {% for require in route.requires %}
         <label for = '{{ route.name }}/{{ require }}'>{{ require }}</label>

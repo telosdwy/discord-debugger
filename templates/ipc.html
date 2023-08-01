@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!-- IPC only -->
+<html>
+  <head>
+    <script src = '{{ url_for('static', filename = 'script.js') }}'></script>
+  </head>
+  <body onload='load();'>
+    <a href = '/'>Return home</a>
+
+    <h1>Discord IPC Debugger</h1>
+    <h3>A thrown-together Discord RPC Debugger</h3>
+
+    <p>Your application ID is: <code>{{ CLIENT_ID }}</code></p>
+    <p id = 'access_token'>Your access_token is: </p>
+    <p>Scopes: <code id = 'scopes'></code></p>
+    <a href = 'javascript:deleteAllCookies();'>Delete cookies</a>
+    <br>
+    <select id = 'routes_select' autocomplete = 'off' onchange = 'change();'>
+      <option value = '' selected></option>
+      {% for route in routes %}
+      <option value = '{{ route.name }}'>{{ route.name }}</option>
+      {% endfor %}
+    </select>
+    {% for route in routes %}
+    <div id = '{{ route.name }}' style = 'display:none;'>
+      <h3>{{ route.name }}</h3>
+      <p>OAuth scopes required:
+        <br>
+        <code>{{ '<br>'.join(route.oauth)|safe }}</code>
+      </p>
+      <p>Requires:
+        <br>
+        <code>{{ '<br>'.join(route.requires)|safe }}</code>
+      </p>
+      {% for require in route.requires %}
+        <label for = '{{ route.name }}/{{ require }}'>{{ require }}</label>
+        <input type = 'text' id = '{{ route.name }}/{{ require }}'></input>
+        <br>
+      {% endfor %}
+      <a href = 'javascript:request("{{ route.name }}");'>Try!</a>
+    </div>
+    {% endfor %}
+  </body>
+</html>

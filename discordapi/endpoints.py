@@ -1,6 +1,25 @@
 from . import *
 # This Python isn't the best, but please deal with it for me.
 
+class API_Exception(Exception):
+    pass
+
+def simpleRequest(method, url, headers, data = None):
+    r = requests.request(
+        method,
+        url,
+        headers = headers,
+        data = data,
+    )
+    try:
+        r.raise_for_status()
+    except:
+        raise API_Exception(r.text)
+    try:
+        return r.json()
+    except:
+        return r.text
+
 def fetchBearerToken(code:str):
     data = {
         'client_id': '%s' % CLIENT_ID,
@@ -12,12 +31,7 @@ def fetchBearerToken(code:str):
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
     }
-    r = requests.post('%s/oauth2/token' % API_ENDPOINT, data = data, headers = headers)
-    try:
-        r.raise_for_status()
-    except:
-        raise Exception(r.text)
-    return r.json()
+    return simpleRequest('POST', '%s/oauth2/token' % API_ENDPOINT, headers, data)
 
 class API:
     def __init__(self, user_token:str):
@@ -27,12 +41,7 @@ class API:
         headers = {
             'Authorization': 'Bearer %s' % self.user_token,
         }
-        r = requests.get('%s' % USERS_ENDPOINT, headers = headers)
-        try:
-            r.raise_for_status()
-        except:
-            raise Exception(r.text)
-        return r.json()
+        return simpleRequest('GET', '%s' % USERS_ENDPOINT, headers)
 
     def addGuildMember(self, **kwargs:dict):
         guild_id:int = kwargs['guild_id']
@@ -44,12 +53,12 @@ class API:
             'Content-Type': 'application/json',
             'Authorization': 'Bot %s' % BOT_TOKEN,
         }
-        r = requests.put('%s/guilds/%s/members/%s' % (API_ENDPOINT, guild_id, user_id), data = json.dumps(data), headers = headers)
-        try:
-            r.raise_for_status()
-        except:
-            raise Exception(r.text)
-        return r.json()
+        return simpleRequest(
+            'PUT',
+            '%s/guilds/%s/members/%s' % (API_ENDPOINT, guild_id, user_id),
+            headers,
+            json.dumps(data),
+        )
 
     def createGroupDM(self, **kwargs:dict):
         data = {
@@ -59,12 +68,12 @@ class API:
             'Content-Type': 'application/json',
             'Authorization': 'Bot %s' % BOT_TOKEN,
         }
-        r = requests.post('%s/channels' % USERS_ENDPOINT, data = json.dumps(data), headers = headers)
-        try:
-            r.raise_for_status()
-        except:
-            raise Exception(r.text)
-        return r.json()
+        return simpleRequest(
+            'POST',
+            '%s/channels' % USERS_ENDPOINT,
+            headers,
+            json.dumps(data),
+        )
 
     def addGroupMember(self, **kwargs:dict):
         channel_id:int = kwargs['channel_id']
@@ -76,12 +85,12 @@ class API:
             'Content-Type': 'application/json',
             'Authorization': 'Bot %s' % BOT_TOKEN,
         }
-        r = requests.put('%s/channels/%s/recipients/%s' % (API_ENDPOINT, channel_id, user_id), data = json.dumps(data), headers = headers)
-        try:
-            r.raise_for_status()
-        except:
-            raise Exception(r.text)
-        return r.text
+        return simpleRequest(
+            'PUT',
+            '%s/channels/%s/recipients/%s' % (API_ENDPOINT, channel_id, user_id),
+            headers,
+            json.dumps(data),
+        )
 
     def removeGroupMember(self, **kwargs:dict):
         channel_id:int = kwargs['channel_id']
@@ -90,12 +99,11 @@ class API:
             'Content-Type': 'application/json',
             'Authorization': 'Bot %s' % BOT_TOKEN,
         }
-        r = requests.delete('%s/channels/%s/recipients/%s' % (API_ENDPOINT, channel_id, user_id), headers = headers)
-        try:
-            r.raise_for_status()
-        except:
-            raise Exception(r.text)
-        return r.text
+        return simpleRequest(
+            'DELETE',
+            '%s/channels/%s/recipients/%s' % (API_ENDPOINT, channel_id, user_id),
+            headers,
+        )
 
     def getConnections(self, **kwargs:dict):
         application_id:int = kwargs['application_id']
@@ -103,17 +111,24 @@ class API:
             'Content-Type': 'application/json',
             'Authorization': 'Bearer %s' % self.user_token,
         }
-        r = requests.get('%s/applications/%s/role-connection' % (USERS_ENDPOINT, application_id), headers = headers)
-        try:
-            r.raise_for_status()
-        except:
-            raise Exception(r.text)
-        return r.text
+        return simpleRequest(
+            'GET',
+            '%s/applications/%s/role-connection' % (USERS_ENDPOINT, application_id),
+            headers,
+        )
 
 class Route:
-    def __init__(self, *, name:str = '', oauth:list = [], route:str = '', function = '', requires:list = []):
+    def __init__(self, *,
+        name:str = '',
+        oauth:list = [],
+        note:str = '',
+        route:str = '',
+        function = '',
+        requires:list = []
+    ):
         self.name = name
         self.oauth = oauth
+        self.note = note
         self.route = route
         self.function = function
         self.requires = requires
@@ -124,6 +139,7 @@ routes = [
         oauth = [
             'identity',
         ],
+        note = 'User token',
         route = '/users/@me',
         function = API.identityUser,
         requires = [
@@ -134,6 +150,7 @@ routes = [
         oauth = [
             'guilds.join',
         ],
+        note = 'User token, Bot token',
         route = '/guilds/{guild.id}/members/{user.id}',
         function = API.addGuildMember,
         requires = [
@@ -146,6 +163,7 @@ routes = [
         oauth = [
             'gdm.join',
         ],
+        note = 'User token(s), Bot token\n(can have more than one user/access_token, but this implementation only uses your access_token)',
         route = '/users/@me/channels',
         function = API.createGroupDM,
         requires = [
@@ -156,6 +174,7 @@ routes = [
         oauth = [
             'gdm.join',
         ],
+        note = 'User token, Bot token',
         route = '/channels/{channel.id}/recipients/{user.id}',
         function = API.addGroupMember,
         requires = [
@@ -168,6 +187,7 @@ routes = [
         oauth = [
             'gdm.join',
         ],
+        note = 'Bot token',
         route = '/channels/{channel.id}/recipients/{user.id}',
         function = API.removeGroupMember,
         requires = [
@@ -180,6 +200,7 @@ routes = [
         oauth = [
             'role_connections.write',
         ],
+        note = 'User token',
         route = '/users/@me/applications/{application.id}/role-connection',
         function = API.getConnections,
         requires = [
